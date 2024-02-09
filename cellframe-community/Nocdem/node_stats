@@ -1,5 +1,5 @@
 #!/bin/bash
-# Nodestats 1.232
+# Nodestats 1.233
 # Telegram   : @Nocdem 
 # Description: This script generates an HTML page displaying various information about the status of a Cellframe node .
 #              It includes details about version, CPU and memory utilization, network, certificates, and wallet information.
@@ -76,6 +76,7 @@ activetime=$(systemctl status cellframe-node) #
 echo "$activetime" | sed 's/^[[:space:]]*//' | grep Active
 #Get version & cpu & mem
 latest_version=$(wget -qO- https://pub.cellframe.net/linux/cellframe-node/master/node-version-badge.svg | grep -o '<text x="114.5" y="14">.*</text>' | sed -n 's/.*>\(.*\)<\/text>.*/\1/p' | sed 's/\./-/2')
+
 current_version=$(/opt/cellframe-node/bin/cellframe-node-cli version | awk '{print $3}')
 echo -n "node version         :"
 if [[ "$current_version" == "$latest_version" ]]; then
@@ -144,6 +145,8 @@ while read -ra network; do
     cert_name=$(cat /opt/cellframe-node/etc/network/"$network"".cfg" | grep "blocks-sign-cert="  | sed 's/^.................//')
     node_status=$(cat /opt/cellframe-node/etc/network/"$network"".cfg" | grep node-role)
     current_block=$(/opt/cellframe-node/bin/cellframe-node-cli block list -net "$network" -chain main | grep .main | awk '{print $3}')
+    current_tx=$(/opt/cellframe-node/bin/cellframe-node-cli ledger tx -all -net "$network" | grep "transaction:" | wc -l)
+    count_tx=$(wget -qO- "https://1.api.explorer.cellframe.net/expl?method=txListCount&net=$network" | grep -oP '"countTx": "\K[^"]+')
 
 checklist=0
 #Check
@@ -181,6 +184,7 @@ fi
     fi
     echo "    Network        State : $network_target_state"
     echo "    Current Block        : $current_block"
+    echo "    Current TX / Last TX : $current_tx / $count_tx"
 
 #Check
 if /opt/cellframe-node/bin/cellframe-node-cli srv_stake order list -net "$network" | grep -q "$node_address"; then
@@ -253,7 +257,7 @@ do
 echo "<button onclick=\"var blockList = document.getElementById('$hash'); if (blockList.style.display === 'none') { blockList.style.display = 'block'; this.innerHTML = 'Collected'; } else { blockList.style.display = 'none'; this.innerHTML = '$hash'; }\">$hash</button>"
 echo "<div id=\"$hash\" style=\"display:none\">"
 echo "/opt/cellframe-node/bin/cellframe-node-cli block reward collect -cert $cert_name -addr $fee_addr -net $network -chain main -hashes $hash -fee 0.05e+18"
-/opt/cellframe-node/bin/cellframe-node-cli block reward collect -cert $cert_name -addr $fee_addr -net $network -chain main -hashes $hash -fee 0.05e+18
+#/opt/cellframe-node/bin/cellframe-node-cli block reward collect -cert $cert_name -addr $fee_addr -net $network -chain main -hashes $hash -fee 0.05e+18
 
 echo "</div>"
 
