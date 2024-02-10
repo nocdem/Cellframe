@@ -1,5 +1,5 @@
 #!/bin/bash
-# Nodestats 1.234
+# Nodestats 1.235
 # Telegram   : @Nocdem 
 # Description: This script generates an HTML page displaying various information about the status of a Cellframe node .
 #              It includes details about version, CPU and memory utilization, network, certificates, and wallet information.
@@ -145,9 +145,11 @@ while read -ra network; do
     cert_name=$(cat /opt/cellframe-node/etc/network/"$network"".cfg" | grep "blocks-sign-cert="  | sed 's/^.................//')
     node_status=$(cat /opt/cellframe-node/etc/network/"$network"".cfg" | grep node-role)
     current_block=$(/opt/cellframe-node/bin/cellframe-node-cli block list -net "$network" -chain main | grep .main | awk '{print $3}')
+    count_block=$(wget -qO- "https://1.api.explorer.cellframe.net/expl?method=blockListCount&net=$network&chain=main" | grep -o '"count": [0-9]*' | awk -F': ' '{print $2}')
     current_tx=$(/opt/cellframe-node/bin/cellframe-node-cli ledger tx -all -net "$network" | grep "transaction:" | wc -l)
     count_tx=$(wget -qO- "https://1.api.explorer.cellframe.net/expl?method=txListCount&net=$network" | grep -oP '"countTx": "\K[^"]+')
     percentage_tx=$(( (current_tx * 100) / count_tx ))
+    percentage_block=$(( (current_block * 100) / count_block ))
 
 checklist=0
 #Check
@@ -183,9 +185,9 @@ fi
     else
         echo "<span> $node_state</span>"
     fi
-    echo "    Network        State : $network_target_state"
-    echo "    Current Block        : $current_block"
-    echo "    Current TX / Last TX : $current_tx / $count_tx  (% $percentage_tx)"
+    echo "    Network State        : $network_target_state"
+    echo "    Current Block        : $current_block / $count_block (% $percentage_block)"
+    echo "    Current TX           : $current_tx / $count_tx (% $percentage_tx)"
 
 #Check
 if /opt/cellframe-node/bin/cellframe-node-cli srv_stake order list -net "$network" | grep -q "$node_address"; then
