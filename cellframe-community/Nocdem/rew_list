@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Check if an address argument is provided
+if [ -z "$1" ]; then
+  echo "Please provide the address as an argument when running the script."
+  echo "Usage: $0 <address>"
+  exit 1
+fi
+
+# Get the provided address
+address=$1
+
+# Create an array of the last year (from today backward)
+dates=()
+for i in {0..365}; do
+  dates+=("$(date --date="$i days ago" '+%a %b %_d')")
+done
+
+# Function to calculate daily rewards from today until the first empty variable
+calculate_daily_rewards() {
+  local history="$1"
+  local total_rewards=0
+  local days_counted=0
+
+  # Iterate over the dates, starting from today and moving backward
+  for day in "${dates[@]}"; do
+    # Extract the daily reward
+    daily_reward=$(echo "$history" | grep -A 13 "$day" | grep -B 4 "source_address: reward collecting" | grep recv_coins | cut -d ":" -f 2 | awk '{ sum += $1 } END { print sum }')
+
+    # Check if daily_reward is empty or non-numeric
+    if [[ -z "$daily_reward" || ! "$daily_reward" =~ ^[0-9]*\.?[0-9]+$ ]]; then
+      echo "Stopping calculation as no valid reward was found for $day."
+      break  # Exit the loop if daily_reward is empty or invalid
+    fi
+
+    # Default daily_reward to 0 if empty
+    daily_reward=${daily_reward:-0}
+
+    # Add the daily reward to total_rewards
+    echo "$day: $daily_reward"
+    total_rewards=$(echo "$total_rewards + $daily_reward" | bc -l)
+    days_counted=$((days_counted + 1))
+  done
+
+  echo "Total rewards for the $days_counted days counted: $total_rewards"
+
+  # Calculate average if at least one day was counted
+  if [[ $days_counted -gt 0 ]]; then
+    average=$(echo "$total_rewards / $days_counted" | bc -l)
+    echo "Average rewards per day over the counted days: $average"
+  else
+    echo "No rewards were counted."
+  fi
+}
+
+# Retrieve transaction history for the given address
+history=$(/opt/cellframe-node/bin/cellframe-node-cli tx_history -net -addr "$address")
+
+# Calculate daily rewards starting from today until the first empty variable
+echo "Calculating daily rewards for address $address:"
+calculate_daily_rewards "$history"
+
+exit
+                                           
