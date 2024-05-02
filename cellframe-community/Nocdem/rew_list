@@ -47,7 +47,7 @@ calculate_daily_rewards() {
   # Calculate average if at least one day was counted
   if [[ $days_counted -gt 0 ]]; then
     average=$(echo "$total_rewards / $days_counted" | bc -l)
-    echo "Average rewards per day over the counted days: $average"
+    echo "Average rewards per day over $days_counted days: $average"
   else
     echo "No rewards were counted."
   fi
