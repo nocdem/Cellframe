@@ -1,9 +1,9 @@
 #!/bin/bash
-# Nodestats 1.235
-# Telegram   : @Nocdem 
+# Nodestats 1.241
+# Telegram   : @Nocdem
 # Description: This script generates an HTML page displaying various information about the status of a Cellframe node .
 #              It includes details about version, CPU and memory utilization, network, certificates, and wallet information.
-#              Some checks as well to run a masternode.               
+#              Some checks as well to run a masternode.
 #              This script is intended to be run in a CGI environment.
 # Prerequisites:
 # 1. Node Application - Make sure the Node application is installed and configured on your system.
@@ -11,7 +11,7 @@
 # 2. bc
 #
 # Installation Steps:
-# 
+#
 # 1. Set Execute Permissions:
 #    chmod +x node_status
 #
@@ -19,8 +19,8 @@
 #    If necessary, update paths in the script to match the location of your `cellframe-node-cli` tool and other dependencies.
 #
 # 3. Configure Web Server:
-#    Configure your web server to execute CGI scripts. 
-#    
+#    Configure your web server to execute CGI scripts.
+#
 # 4. Copy the scrpt to
 #    /cgi-bin/ /path/to/cgi-bin/
 #
@@ -132,47 +132,25 @@ echo "<span style='background-color: $memory_color; color: white; padding: 0.2em
 echo ""
 
 #Get networks certicaftes and wallet info.
-networks=$(/opt/cellframe-node/bin/cellframe-node-cli net list | grep -oP '(?<=^\t)[^ ]+')
+#networks=$(/opt/cellframe-node/bin/cellframe-node-cli net list  | grep -v '^$' | sed '1d; s/^[[:space:]]*//')
+networks=$(/opt/cellframe-node/bin/cellframe-node-cli net list | grep -v '^$' | sed '1d; s/^[[:space:]]*//; s/,//g')
+
 certs=$(ls /opt/cellframe-node/var/lib/ca/ | grep -oP '^(?!node-addr-).*dcert' | sed 's/.dcert//g')
 wallets=$(ls /opt/cellframe-node/var/lib/wallet/ | sed 's/.dwallet//g')
 while read -ra network; do
 #Get networrk information
     status=$(/opt/cellframe-node/bin/cellframe-node-cli net get status -net "$network")
-    node_address=$(echo "$status" | grep -oP 'cur node address \K\S+')
-    node_state=$(echo "$status" | grep 'has state' | sed 's/.*has state //; s/,.*//; s/([^()]*)//g')
-    network_target_state=$(echo "$status" | grep 'target state' | sed 's/.*target state //; s/),.*//')
+    node_address=$(echo "$status" | grep current_addr | awk '{print $2}')
+    node_state=$(echo "$status"  | grep current: | awk '{print $2}')
+    network_target_state=$(echo "$status" | grep target: |awk '{print $2}')
     fee_addr=$(cat /opt/cellframe-node/etc/network/"$network"".cfg" | grep "fee_addr="  | sed 's/^.........//')
     cert_name=$(cat /opt/cellframe-node/etc/network/"$network"".cfg" | grep "blocks-sign-cert="  | sed 's/^.................//')
     node_status=$(cat /opt/cellframe-node/etc/network/"$network"".cfg" | grep node-role)
+    node_percent=$(echo "$status"  | grep percent: | awk '{print $2}')
     current_block=$(/opt/cellframe-node/bin/cellframe-node-cli block list -net "$network" -chain main | grep .main | awk '{print $3}')
-    count_block=$(wget -qO- "https://1.api.explorer.cellframe.net/expl?method=blockListCount&net=$network&chain=main" | grep -o '"count": [0-9]*' | awk -F': ' '{print $2}')
-    current_tx=$(/opt/cellframe-node/bin/cellframe-node-cli ledger tx -all -net "$network" | grep "transaction:" | wc -l)
-    count_tx=$(wget -qO- "https://1.api.explorer.cellframe.net/expl?method=txListCount&net=$network" | grep -oP '"countTx": "\K[^"]+')
-    percentage_tx=$(( (current_tx * 100) / count_tx ))
-    percentage_block=$(( (current_block * 100) / count_block ))
 
-checklist=0
-#Check
-if /opt/cellframe-node/bin/cellframe-node-cli srv_stake order list -net "$network" | grep -q "$node_address"; then
-((checklist++))
-fi
-#Check
-if /opt/cellframe-node/bin/cellframe-node-cli node dump  -net "$network" | grep -q "$node_address"; then
-((checklist++))
-fi
 
-#Check
-if ! /opt/cellframe-node/bin/cellframe-node-cli srv_stake list keys -net "$network" -cert "$cert_name" | grep -q "Active: false"; then
-
-((checklist++))
-
-fi
-#check node state
-    if [[ $checklist -eq 3 ]]; then
         echo -n "<span style='background-color: green; color: white; padding: 0.2em 0.5em; border-radius: 3px;'>Network >>>></span>"
-    else
-        echo -n "<span style='background-color: red; color: white; padding: 0.2em 0.5em; border-radius: 3px;'>Network >>>></span>"
-    fi
 
     echo "<button onclick=\"var blockList = document.getElementById('$network'); if (blockList.style.display === 'none') { blockList.style.display = 'block'; this.innerHTML = '$network'; } else { blockList.style.display = 'none'; this.innerHTML = '$network'; }\">$network</button>"
     echo "    <div id=\"$network\" style=\"display:none\">"
@@ -186,25 +164,8 @@ fi
         echo "<span> $node_state</span>"
     fi
     echo "    Network State        : $network_target_state"
-    echo "    Current Block        : $current_block / $count_block (% $percentage_block)"
-    echo "    Current TX           : $current_tx / $count_tx (% $percentage_tx)"
+    echo "    Sync Percentage      : $node_percent %"
 
-#Check
-if /opt/cellframe-node/bin/cellframe-node-cli srv_stake order list -net "$network" | grep -q "$node_address"; then
-  echo ""
-else
-  echo "<span style='background-color: red; color: white; padding: 0.2em 0.5em; border-radius: 3px;'>$node_address does not have an active order</span>"
-    log_error "$node_address does not have an active order"
-fi
-#Check
-if /opt/cellframe-node/bin/cellframe-node-cli node dump  -net "$network" | grep -q "$node_address"; then
-  echo ""
-else
-  echo "<span style='background-color: red; color: white; padding: 0.2em 0.5em; border-radius: 3px;'>$node_address is not in node list</span>"
-extip=$(dig +short myip.opendns.com @resolver1.opendns.com) #
-echo "cellframe-node-cli node add -net $network -ipv4 $extip -port 8079"
-    log_error "$node_address is not in node list<"
-fi
 #Check
 if /opt/cellframe-node/bin/cellframe-node-cli srv_stake list keys -net "$network" -cert "$cert_name" | grep -q "Active: false"; then
 echo "<span style='background-color: red; color: white; padding: 0.2em 0.5em; border-radius: 3px;'> Certificate not active!</span>"
@@ -215,16 +176,21 @@ fi
 block_list=$(/opt/cellframe-node/bin/cellframe-node-cli block list signed -net "$network" -chain main -cert "$cert_name")
 cert_status=$(/opt/cellframe-node/bin/cellframe-node-cli srv_stake list keys -net "$network" -cert "$cert_name")
 hashes=( $(/opt/cellframe-node/bin/cellframe-node-cli block list signed -net "$network" -chain main -cert "$cert_name" -unspent | tr -d '\t' | grep -oP '^[a-zA-Z0-9]{66}') )
-autostatuss=$(/opt/cellframe-node/bin/cellframe-node-cli block autocollect status -net "$network" -chain main | tail -n +3)
+autostatuss=$(/opt/cellframe-node/bin/cellframe-node-cli block autocollect status -net "$network" -chain main | sed -e '/^[[:space:]]*profit is/d' -e 's/, where//')
 b_reward=$(/opt/cellframe-node/bin/cellframe-node-cli block reward -net "$network" -chain main show)
-output_date=$(/opt/cellframe-node/bin/cellframe-node-cli tx_history -addr "$fee_addr" | grep -B 13 reward | head -n 1 | sed 's/^[ \t]*//' | sed 's/^tx_created: //')
 last_date=$(/opt/cellframe-node/bin/cellframe-node-cli tx_history -addr "$fee_addr" | grep -B 13 reward | grep tx_created | tail -n 1 | sed 's/^[ \t]*//' | sed 's/^tx_created: //')
 stake_info=$(/opt/cellframe-node/bin/cellframe-node-cli srv_stake list keys -net "$network" -cert "$cert_name")
 initial_investment=$(echo "$stake_info" | grep "Stake value" | awk '{print $3}')
+history=$(/opt/cellframe-node/bin/cellframe-node-cli tx_history -net -addr "$fee_addr")
+total_rewards=$(echo "$history" | grep -A 22 "status: ACCEPTED" | grep -B 4 "source_address: reward collecting" | grep recv_coins | cut -d ":" -f 2 | awk '{ sum += $1 } END { print sum }')
+
+stake_value=$(echo "$cert_status" | grep -oP 'Stake value: \K[0-9.]+')
+
+# Multiply the stake value by 1000
+stake_value=$(echo "$stake_value * 1000" | bc)
 
 echo "$autostatuss"
 echo "$b_reward"
-total_rewards=$(/opt/cellframe-node/bin/cellframe-node-cli tx_history -addr "$fee_addr" | grep -B 3 "source_address: reward collecting" | awk '/recv_coins/ { total += $2 } END { print total }' )
 output_timestamp=$(date -d "$output_date" +"%s")
 current_timestamp=$(date +"%s")
 time_difference=$((current_timestamp - output_timestamp))
@@ -235,11 +201,67 @@ apy=$(echo "scale=5; ($yearly_e_gain / $initial_investment) * 100 / 1000" | bc)
 echo ""
 echo "=== Certificate ==="
 echo "Delegated $cert_status" | grep  "Related weight"  | sed 's/^[[:space:]]*//'
-echo "Total Distributed Rewards: $total_rewards"
-echo "Estimated Apy % $apy"
+echo "Delegated value $stake_value"
+#echo "Total Distributed Rewards: $total_rewards"
 echo ""
-echo "First Signed Block date $output_date ($days_passed days)"
+dates=()
+for i in {0..6}; do
+  dates+=("$(date --date="$i days ago" '+%a %b %_d')")
+done
+
+# Function to calculate daily rewards from today until the first empty variable
+calculate_daily_rewards() {
+  local history="$1"
+  local total_rewards=0
+  local days_counted=0
+
+  # Iterate over the dates, starting from today and moving backward
+  for day in "${dates[@]}"; do
+    # Extract the daily reward
+    daily_reward=$(echo "$history" | grep -A 22 "status: ACCEPTED" | grep -A 13 "$day" | grep -B 4 "source_address: reward collecting" | grep recv_coins | cut -d ":" -f 2 | awk '{ sum += $1 } END { print sum }')
+
+    # Check if daily_reward is empty or non-numeric
+    if [[ -z "$daily_reward" || ! "$daily_reward" =~ ^[0-9]*\.?[0-9]+$ ]]; then
+daily_reward=0
+    fi
+
+    # Default daily_reward to 0 if empty
+    daily_reward=${daily_reward:-0}
+
+    # Add the daily reward to total_rewards
+    echo "$day: $daily_reward"
+    total_rewards=$(echo "$total_rewards + $daily_reward" | bc -l)
+    days_counted=$((days_counted + 1))
+  done
+
+
+  # Calculate average if at least one day was counted
+  if [[ $days_counted -gt 0 ]]; then
+    #average=$(echo "$total_rewards / $days_counted" | bc -l)
+average=$(printf "%.2f" $(echo "$total_rewards / $days_counted" | bc -l))
+
+yearly_estimate=$(echo "$average * 365" | bc -l)
+echo ""
+    echo "$days_counted days average($average /Day)"
+  else
+    echo "No rewards were counted."
+  fi
+}
+
+
+# Calculate daily rewards starting from today until the first empty variable
+calculate_daily_rewards "$history"
+if [ "$stake_value" != "0" ]; then
+  est_apy=$(echo "scale=2; $yearly_estimate / $stake_value * 100" | bc)
+else
+  est_apy="undefined (stake value is zero)"
+fi
+echo "Estimated apy % $est_apy"
+
+
+echo ""
 echo "Last Signed Block date  $last_date"
+
 
 #check
 if $(/opt/cellframe-node/bin/cellframe-node-cli block list signed -net "$network" -chain main -cert "$cert_name" | grep -q) "Have 0 blocks";then
@@ -259,8 +281,8 @@ do
 
 echo "<button onclick=\"var blockList = document.getElementById('$hash'); if (blockList.style.display === 'none') { blockList.style.display = 'block'; this.innerHTML = 'Collected'; } else { blockList.style.display = 'none'; this.innerHTML = '$hash'; }\">$hash</button>"
 echo "<div id=\"$hash\" style=\"display:none\">"
-echo "/opt/cellframe-node/bin/cellframe-node-cli block reward collect -cert $cert_name -addr $fee_addr -net $network -chain main -hashes $hash -fee 0.05e+18"
-#/opt/cellframe-node/bin/cellframe-node-cli block reward collect -cert $cert_name -addr $fee_addr -net $network -chain main -hashes $hash -fee 0.05e+18
+echo "/opt/cellframe-node/bin/cellframe-node-cli block reward collect -cert $cert_name -addr $fee_addr -net $network -chain main -hashes $hash -fee 0.01e+18"
+/opt/cellframe-node/bin/cellframe-node-cli block reward collect -cert $cert_name -addr $fee_addr -net $network -chain main -hashes $hash -fee 0.01e+18
 
 echo "</div>"
 
@@ -271,4 +293,5 @@ done <<< "$networks"
 echo "</pre>"
 echo "</body>"
 echo "</html>"
+
 
