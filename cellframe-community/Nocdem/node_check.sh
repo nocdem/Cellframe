@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# All ssh keys must be installed on the master computer
+# Add all nodes to /etc/hosts
+
 # Clear the terminal screen
 clear
 echo "---------------------------------------------------------------"
