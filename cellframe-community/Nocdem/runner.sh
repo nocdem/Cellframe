@@ -1,5 +1,5 @@
 #!/bin/bash
-# Runner 0.14
+# Runner 0.19
 # Node names
 nodes=("cell1" "cell2" "kel1" "kel2" "kel3" "kel4")
 
@@ -12,6 +12,7 @@ dest_addresses_url="https://raw.githubusercontent.com/nocdem/Cellframe/main/cell
 default_fee="0.01e+18"
 min_value="0.0001e+18"
 max_value="0.001e+18"
+balance_threshold="0.001e+18"
 
 # Default sleep time range (in minutes)
 min_sleep_time=1
@@ -30,9 +31,17 @@ check_for_updates() {
 
     if [ "$current_version" != "$latest_version" ]; then
         echo "New version $latest_version found. Updating script..."
-        curl -s $script_url -o $0
-        echo "Script updated to version $latest_version. Restarting..."
-        exec $0 "$@"
+        curl -s $script_url -o $0.tmp
+        if [ $? -eq 0 ]; then
+            mv $0.tmp $0
+            chmod +x $0
+            echo "Script updated to version $latest_version. Restarting..."
+            exec $0 "$@"
+        else
+            echo "Failed to download the new version. Exiting..."
+            rm -f $0.tmp
+            exit 1
+        fi
     else
         echo "Script is up to date."
     fi
@@ -41,12 +50,15 @@ check_for_updates() {
 # Function to download the destination addresses file
 download_dest_addresses() {
     echo "Downloading destination addresses file..."
-    curl -s $dest_addresses_url -o $dest_addresses_file
-    if [ $? -ne 0 ]; then
+    curl -s $dest_addresses_url -o $dest_addresses_file.tmp
+    if [ $? -eq 0 ]; then
+        mv $dest_addresses_file.tmp $dest_addresses_file
+        echo "Destination addresses file downloaded."
+    else
         echo "Failed to download destination addresses file. Exiting..."
+        rm -f $dest_addresses_file.tmp
         exit 1
     fi
-    echo "Destination addresses file downloaded."
 }
 
 # Function to check if the node is online
@@ -80,6 +92,19 @@ get_token_ticker() {
     else
         echo ""
     fi
+}
+
+# Function to check the balance of a wallet
+check_wallet_balance() {
+    local node=$1
+    local wallet=$2
+    local balance_info=$(ssh $node "$cli_path wallet info -w $wallet")
+    echo "Debug: Wallet info for $wallet on node $node:"
+    echo "$balance_info"
+    local balance=$(echo "$balance_info" | grep 'balance' | awk '{print $2}')
+    echo "Debug: Extracted balance: $balance"
+    awk -v balance=$balance -v threshold=$balance_threshold 'BEGIN{if(balance < threshold) exit 1; else exit 0}'
+    return $?
 }
 
 # Function to send a transaction and handle retries
@@ -155,7 +180,16 @@ send_commands() {
         fi
 
         # Get a random wallet and destination address ensuring they are not the same
-        random_wallet=${wallet_array[RANDOM % ${#wallet_array[@]}]}
+        for wallet in "${wallet_array[@]}"; do
+            if check_wallet_balance $node $wallet; then
+                random_wallet=$wallet
+                break
+            fi
+        done
+        if [ -z "$random_wallet" ]; then
+            echo "No wallets with sufficient balance found on node $node for network $network"
+            continue
+        fi
         while true; do
             random_dest=${dest_array[RANDOM % ${#dest_array[@]}]}
             if [ "$random_dest" != "$random_wallet" ]; then
@@ -171,7 +205,16 @@ send_commands() {
             continue
         else
             # Retry with a different wallet and destination address
-            new_random_wallet=${wallet_array[RANDOM % ${#wallet_array[@]}]}
+            for wallet in "${wallet_array[@]}"; do
+                if check_wallet_balance $node $wallet; then
+                    new_random_wallet=$wallet
+                    break
+                fi
+            done
+            if [ -z "$new_random_wallet" ]; then
+                echo "No wallets with sufficient balance found on node $node for network $network"
+                continue
+            fi
             while true; do
                 new_random_dest=${dest_array[RANDOM % ${#dest_array[@]}]}
                 if [ "$new_random_dest" != "$new_random_wallet" ]; then
