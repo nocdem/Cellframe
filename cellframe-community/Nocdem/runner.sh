@@ -1,11 +1,12 @@
 #!/bin/bash
-# Runner 0.11
+# Runner 0.13
 # Node names
-nodes=("cell1" "cell2" "kel1" "kel2")
+nodes=("cell1" "cell2" "kel1" "kel2" "kel3" "kel4")
 
 # Path to cellframe-node-cli
 cli_path="/opt/cellframe-node/bin/cellframe-node-cli"
 dest_addresses_file="./dest_addresses.txt"
+dest_addresses_url="https://raw.githubusercontent.com/nocdem/Cellframe/main/cellframe-community/Nocdem/dest_addresses.txt"
 
 # Default fee and transaction value range
 default_fee="0.01e+18"
@@ -13,8 +14,37 @@ min_value="0.0001e+18"
 max_value="0.001e+18"
 
 # Default sleep time range (in minutes)
-min_sleep_time=5
-max_sleep_time=6
+min_sleep_time=1
+max_sleep_time=2
+
+# URL of the script on GitHub
+script_url="https://raw.githubusercontent.com/nocdem/Cellframe/main/cellframe-community/Nocdem/runner.sh"
+
+# Function to check for script updates
+check_for_updates() {
+    local current_version=$(grep -m 1 -oP '^# Runner \K[0-9.]+' $0)
+    local latest_version=$(curl -s $script_url | grep -m 1 -oP '^# Runner \K[0-9.]+')
+
+    if [ "$current_version" != "$latest_version" ]; then
+        echo "New version $latest_version found. Updating script..."
+        curl -s $script_url -o $0
+        echo "Script updated to version $latest_version. Restarting..."
+        exec $0 "$@"
+    else
+        echo "Script is up to date."
+    fi
+}
+
+# Function to download the destination addresses file
+download_dest_addresses() {
+    echo "Downloading destination addresses file..."
+    curl -s $dest_addresses_url -o $dest_addresses_file
+    if [ $? -ne 0 ]; then
+        echo "Failed to download destination addresses file. Exiting..."
+        exit 1
+    fi
+    echo "Destination addresses file downloaded."
+}
 
 # Function to check if the node is online
 is_node_online() {
@@ -121,16 +151,14 @@ send_commands() {
             continue
         fi
 
-        # Ensure the destination address is not the same as the wallet address
+        # Get a random wallet and destination address ensuring they are not the same
+        random_wallet=${wallet_array[RANDOM % ${#wallet_array[@]}]}
         while true; do
             random_dest=${dest_array[RANDOM % ${#dest_array[@]}]}
             if [ "$random_dest" != "$random_wallet" ]; then
                 break
             fi
         done
-
-        # Get a random wallet from the array
-        random_wallet=${wallet_array[RANDOM % ${#wallet_array[@]}]}
 
         # Get the token ticker for the network
         token_ticker=$(get_token_ticker $network)
@@ -139,9 +167,15 @@ send_commands() {
         if send_transaction $node $network $random_wallet $random_dest $token_ticker; then
             continue
         else
-            # Retry with a different wallet
+            # Retry with a different wallet and destination address
             new_random_wallet=${wallet_array[RANDOM % ${#wallet_array[@]}]}
-            if ! send_transaction $node $network $new_random_wallet $random_dest $token_ticker; then
+            while true; do
+                new_random_dest=${dest_array[RANDOM % ${#dest_array[@]}]}
+                if [ "$new_random_dest" != "$new_random_wallet" ]; then
+                    break
+                fi
+            done
+            if ! send_transaction $node $network $new_random_wallet $new_random_dest $token_ticker; then
                 echo "Transaction failed again. Skipping node $node."
                 return
             fi
@@ -151,6 +185,12 @@ send_commands() {
 
 # Main loop
 while true; do
+    # Check for script updates
+    check_for_updates
+
+    # Download the latest destination addresses file
+    download_dest_addresses
+
     for node in "${nodes[@]}"; do
         send_commands $node
     done
