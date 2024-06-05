@@ -1,5 +1,5 @@
 #!/bin/bash
-# Runner 0.13
+# Runner 0.14
 # Node names
 nodes=("cell1" "cell2" "kel1" "kel2" "kel3" "kel4")
 
@@ -24,6 +24,9 @@ script_url="https://raw.githubusercontent.com/nocdem/Cellframe/main/cellframe-co
 check_for_updates() {
     local current_version=$(grep -m 1 -oP '^# Runner \K[0-9.]+' $0)
     local latest_version=$(curl -s $script_url | grep -m 1 -oP '^# Runner \K[0-9.]+')
+
+    echo "Current version: $current_version"
+    echo "Latest version on GitHub: $latest_version"
 
     if [ "$current_version" != "$latest_version" ]; then
         echo "New version $latest_version found. Updating script..."
