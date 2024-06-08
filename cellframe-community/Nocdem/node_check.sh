@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.3"
+SCRIPT_VERSION="1.6"
 
 # Clear the terminal screen
 clear
@@ -23,35 +23,16 @@ AUTO_TRANSFER=false
 AUTO_UPDATE=true
 CELL_NODES=("cell1")
 KEL_NODES=("kel1" "kel2")
+CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
+CONFIG_PATH="/opt/cellframe-node/etc/network"
 EOF
 fi
 
 # Load configuration
 source "$CONFIG_FILE"
 
-# Paths and repeated strings
-CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
-CONFIG_PATH="/opt/cellframe-node/etc/network"
-
 # URL to check for script updates
 SCRIPT_URL="https://raw.githubusercontent.com/nocdem/Cellframe/main/cellframe-community/Nocdem/node_check.sh"
-
-# Function to check and update the script if needed
-check_update() {
-  latest_version=$(curl -s "$SCRIPT_URL" | grep -m 1 -oP 'SCRIPT_VERSION="\K[0-9.]+')
-  if [[ "$latest_version" > "$SCRIPT_VERSION" ]]; then
-    if [ "$AUTO_UPDATE" = true ]; then
-      echo "New version $latest_version found. Updating the script."
-      curl -s "$SCRIPT_URL" -o "$0"
-      echo "Update completed. Restarting the script."
-      exec "$0"
-    else
-      echo "New version $latest_version available. Auto update is disabled."
-    fi
-  else
-    echo "Script is up to date. Current version: $SCRIPT_VERSION"
-  fi
-}
 
 # Check for updates
 check_update
@@ -70,6 +51,44 @@ total_wallet_balance_cell=0
 total_today_rewards_kel=0
 total_yesterday_rewards_kel=0
 total_wallet_balance_kel=0
+
+# Loop through cell nodes and get their node information
+for node in "${CELL_NODES[@]}"; do
+  get_node_info "$node" "Backbone" "main" "CELL" "$CELL_MASTER_WALLET" "$CELL_THRESHOLD"
+done
+
+# Loop through kel nodes and get their node information
+for node in "${KEL_NODES[@]}"; do
+  get_node_info "$node" "KelVPN" "main" "KEL" "$KEL_MASTER_WALLET" "$KEL_THRESHOLD"
+done
+
+# Print summary report
+echo "Summary Report"
+echo "---------------------------------------------------------------"
+echo "  Total Today's Rewards (CELL): $total_today_rewards_cell"
+echo "  Total Yesterday's Rewards (CELL): $total_yesterday_rewards_cell"
+echo "  Total Wallet Balance (CELL): $total_wallet_balance_cell"
+echo "  Total Today's Rewards (KEL): $total_today_rewards_kel"
+echo "  Total Yesterday's Rewards (KEL): $total_yesterday_rewards_kel"
+echo "  Total Wallet Balance (KEL): $total_wallet_balance_kel"
+echo "---------------------------------------------------------------"
+
+# Function to check and update the script if needed
+check_update() {
+  latest_version=$(curl -s "$SCRIPT_URL" | grep -m 1 -oP 'SCRIPT_VERSION="\K[0-9.]+')
+  if [[ "$latest_version" > "$SCRIPT_VERSION" ]]; then
+    if [ "$AUTO_UPDATE" = true ]; then
+      echo "New version $latest_version found. Updating the script."
+      curl -s "$SCRIPT_URL" -o "$0"
+      echo "Update completed. Restarting the script."
+      exec "$0"
+    else
+      echo "New version $latest_version available. Auto update is disabled."
+    fi
+  else
+    echo "Script is up to date. Current version: $SCRIPT_VERSION"
+  fi
+}
 
 # Function to calculate daily rewards from today until the first empty variable
 calculate_daily_rewards() {
@@ -268,24 +287,3 @@ get_node_info() {
   
   echo "---------------------------------------------------------------"
 }
-
-# Loop through cell nodes and get their node information
-for node in "${CELL_NODES[@]}"; do
-  get_node_info "$node" "Backbone" "main" "CELL" "$CELL_MASTER_WALLET" "$CELL_THRESHOLD"
-done
-
-# Loop through kel nodes and get their node information
-for node in "${KEL_NODES[@]}"; do
-  get_node_info "$node" "KelVPN" "main" "KEL" "$KEL_MASTER_WALLET" "$KEL_THRESHOLD"
-done
-
-# Print summary report
-echo "Summary Report"
-echo "---------------------------------------------------------------"
-echo "  Total Today's Rewards (CELL): $total_today_rewards_cell"
-echo "  Total Yesterday's Rewards (CELL): $total_yesterday_rewards_cell"
-echo "  Total Wallet Balance (CELL): $total_wallet_balance_cell"
-echo "  Total Today's Rewards (KEL): $total_today_rewards_kel"
-echo "  Total Yesterday's Rewards (KEL): $total_yesterday_rewards_kel"
-echo "  Total Wallet Balance (KEL): $total_wallet_balance_kel"
-echo "---------------------------------------------------------------"
