@@ -1,30 +1,37 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.0"
-
-AUTO_UPDATE=true # set to false to disable auto update
-AUTO_TRANSFER=true # set to true to enable auto transfer
-
+SCRIPT_VERSION="1.1"
 
 # Clear the terminal screen
 clear
+echo "---------------------------------------------------------------"
 
-# Define arrays for node names
-cell_nodes=("cell1")
-kel_nodes=("kel1" "kel2")
+# Configuration file path
+CONFIG_FILE="node_check.cfg"
 
-# Paths
-CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
-CONFIG_PATH="/opt/cellframe-node/etc/network"
-
-# Master WAllets
+# Check if configuration file exists, if not create it with default values
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Configuration file not found. Creating default configuration file."
+    cat > "$CONFIG_FILE" << EOF
+# Node Check Configuration
 CELL_MASTER_WALLET=""
 KEL_MASTER_WALLET=""
+CELL_THRESHOLD=100
+KEL_THRESHOLD=1000
+AUTO_TRANSFER=false
+AUTO_UPDATE=true
+CELL_NODES=("cell1")
+KEL_NODES=("kel1" "kel2")
+EOF
+fi
 
-# Threshold values for transferring funds
-CELL_THRESHOLD=100 # adjust as needed
-KEL_THRESHOLD=1000 # adjust as needed
+# Load configuration
+source "$CONFIG_FILE"
+
+# Paths and repeated strings
+CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
+CONFIG_PATH="/opt/cellframe-node/etc/network"
 
 # URL to check for script updates
 SCRIPT_URL="https://raw.githubusercontent.com/nocdem/Cellframe/main/cellframe-community/Nocdem/node_check.sh"
@@ -49,7 +56,6 @@ check_update() {
 # Check for updates
 check_update
 echo "---------------------------------------------------------------"
-
 # Create an array of the last year (from today backward)
 dates=()
 for i in {0..365}; do
@@ -149,11 +155,11 @@ transfer_funds() {
   local threshold="$4"
   local master_wallet="$5"
   local token="$6"
-
+  
   if (( $(echo "$wallet_balance > $threshold" | bc -l) )); then
     value=$(echo "$wallet_balance - 0.05" | bc -l)
     transfer_command="$CELLFRAME_PATH tx_create -net $net -chain main -value ${value}e+18 -token $token -to_addr $master_wallet -from_wallet $node -fee 0.05e+18"
-
+    
     if [ "$AUTO_TRANSFER" = true ]; then
       ssh_exec "$node" "$transfer_command"
       if [[ $? -eq 0 ]]; then
@@ -251,20 +257,20 @@ get_node_info() {
   fi
 
   echo "  Stake Value: $stake_value $token"
-
+  
   # Transfer funds if threshold is exceeded
   transfer_funds "$node" "$net" "$wallet_balance" "$threshold" "$master_wallet" "$token"
-
+  
   echo "---------------------------------------------------------------"
 }
 
 # Loop through cell nodes and get their node information
-for node in "${cell_nodes[@]}"; do
+for node in "${CELL_NODES[@]}"; do
   get_node_info "$node" "Backbone" "main" "CELL" "$CELL_MASTER_WALLET" "$CELL_THRESHOLD"
 done
 
 # Loop through kel nodes and get their node information
-for node in "${kel_nodes[@]}"; do
+for node in "${KEL_NODES[@]}"; do
   get_node_info "$node" "KelVPN" "main" "KEL" "$KEL_MASTER_WALLET" "$KEL_THRESHOLD"
 done
 
