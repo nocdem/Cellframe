@@ -1,19 +1,55 @@
+
 #!/bin/bash
 
-# All ssh keys must be installed on the master computer
-# Add all nodes to /etc/hosts
+# Version information
+SCRIPT_VERSION="1.0"
+
+AUTO_UPDATE=true # set to false to disable auto update
+AUTO_TRANSFER=true # set to true to enable auto transfer
+
 
 # Clear the terminal screen
 clear
-echo "---------------------------------------------------------------"
 
 # Define arrays for node names
-cell_nodes=("cell1" "cell2")
-kel_nodes=("kel1" "kel2" "kel3" "kel4")
+cell_nodes=("cell1" "briancell")
+kel_nodes=("kel1" "kel2" "kel3" "kel4" "gurkankel" "briankel")
 
-# Paths 
+# Paths
 CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
 CONFIG_PATH="/opt/cellframe-node/etc/network"
+
+# Master WAllets
+CELL_MASTER_WALLET="Rj7J7MiX2bWy8sNyWhXjfahLCfe4B5AgDU9JcMCJtJa8m2P2HewH3kzik2mjDYKuLD5Jj4ioVQLxAkocDhFJiD4isBNkD5jjorokvTEy"
+KEL_MASTER_WALLET="Rj7J7MjNgdr8DX5E9h4MJj2ZkFfpJ4bpKj4UQjAvftNyGPjq92PKppkewuXZfTLwi3JFtrnoQm8tYDLLBJNqBEAXAkoYX4tQHNWeLpsV"
+
+# Threshold values for transferring funds
+CELL_THRESHOLD=100 # adjust as needed
+KEL_THRESHOLD=1000 # adjust as needed
+
+# URL to check for script updates
+SCRIPT_URL="https://raw.githubusercontent.com/nocdem/Cellframe/main/cellframe-community/Nocdem/node_check.sh"
+
+# Function to check and update the script if needed
+check_update() {
+  latest_version=$(curl -s "$SCRIPT_URL" | grep -m 1 -oP 'SCRIPT_VERSION="\K[0-9.]+')
+  if [[ "$latest_version" > "$SCRIPT_VERSION" ]]; then
+    if [ "$AUTO_UPDATE" = true ]; then
+      echo "New version $latest_version found. Updating the script."
+      curl -s "$SCRIPT_URL" -o "$0"
+      echo "Update completed. Restarting the script."
+      exec "$0"
+    else
+      echo "New version $latest_version available. Auto update is disabled."
+    fi
+  else
+    echo "Script is up to date."
+  fi
+}
+
+# Check for updates
+check_update
+echo "---------------------------------------------------------------"
 
 # Create an array of the last year (from today backward)
 dates=()
@@ -52,8 +88,8 @@ calculate_daily_rewards() {
     total_rewards=$(echo "$total_rewards + $daily_reward" | bc -l)
     days_counted=$((days_counted + 1))
 
-    # For the first 7 days, add to last_7_days_rewards
-    if [[ $days_counted -le 7 ]]; then
+    # For the first 7 days starting from yesterday, add to last_7_days_rewards
+    if [[ $days_counted -le 8 && $days_counted -ge 2 ]]; then
       last_7_days_rewards=$(echo "$last_7_days_rewards + $daily_reward" | bc -l)
     fi
 
@@ -76,10 +112,10 @@ calculate_daily_rewards() {
   done
 
   # Calculate average for the last 7 days if at least one day was counted
-  if [[ $days_counted -ge 7 ]]; then
+  if [[ $days_counted -ge 8 ]]; then
     average_last_7_days=$(echo "$last_7_days_rewards / 7" | bc -l)
   else
-    average_last_7_days=$(echo "$last_7_days_rewards / $days_counted" | bc -l)
+    average_last_7_days=$(echo "$last_7_days_rewards / ($days_counted - 1)" | bc -l)
   fi
   echo "   Today's reward: $today_reward $token (Yesterday was $yesterday_reward $token)"
   echo "   7 days: average $average_last_7_days $token"
@@ -97,10 +133,38 @@ calculate_daily_rewards() {
 ssh_exec() {
   local node="$1"
   local command="$2"
-  ssh "$node" "$command" 2>/dev/null
+  result=$(ssh "$node" "$command" 2>/dev/null)
   if [[ $? -ne 0 ]]; then
     echo "    Error: Unable to connect to $node or execute command."
     return 1
+  else
+    echo "$result"
+  fi
+}
+
+# Function to transfer funds to the master wallet if the balance exceeds the threshold
+transfer_funds() {
+  local node="$1"
+  local net="$2"
+  local wallet_balance="$3"
+  local threshold="$4"
+  local master_wallet="$5"
+  local token="$6"
+
+  if (( $(echo "$wallet_balance > $threshold" | bc -l) )); then
+    value=$(echo "$wallet_balance - 0.05" | bc -l)
+    transfer_command="$CELLFRAME_PATH tx_create -net $net -chain main -value ${value}e+18 -token $token -to_addr $master_wallet -from_wallet $node -fee 0.05e+18"
+
+    if [ "$AUTO_TRANSFER" = true ]; then
+      ssh_exec "$node" "$transfer_command"
+      if [[ $? -eq 0 ]]; then
+        echo "  Transfer of $value $token from $node to $master_wallet successful."
+      else
+        echo "  Transfer of $value $token from $node to $master_wallet failed."
+      fi
+    else
+      echo "  Threshold exceeded. Auto transfer is disabled."
+    fi
   fi
 }
 
@@ -110,6 +174,8 @@ get_node_info() {
   local net="$2"
   local chain="$3"
   local token="$4"
+  local master_wallet="$5"
+  local threshold="$6"
 
   # Get network status
   net_status=$(ssh_exec "$node" "$CELLFRAME_PATH net get status -net $net")
@@ -186,17 +252,21 @@ get_node_info() {
   fi
 
   echo "  Stake Value: $stake_value $token"
+
+  # Transfer funds if threshold is exceeded
+  transfer_funds "$node" "$net" "$wallet_balance" "$threshold" "$master_wallet" "$token"
+
   echo "---------------------------------------------------------------"
 }
 
 # Loop through cell nodes and get their node information
 for node in "${cell_nodes[@]}"; do
-  get_node_info "$node" "Backbone" "main" "CELL"
+  get_node_info "$node" "Backbone" "main" "CELL" "$CELL_MASTER_WALLET" "$CELL_THRESHOLD"
 done
 
 # Loop through kel nodes and get their node information
 for node in "${kel_nodes[@]}"; do
-  get_node_info "$node" "KelVPN" "main" "KEL"
+  get_node_info "$node" "KelVPN" "main" "KEL" "$KEL_MASTER_WALLET" "$KEL_THRESHOLD"
 done
 
 # Print summary report
