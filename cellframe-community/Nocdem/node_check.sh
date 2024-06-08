@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.1"
+SCRIPT_VERSION="1.2"
 
 # Clear the terminal screen
 clear
@@ -49,13 +49,14 @@ check_update() {
       echo "New version $latest_version available. Auto update is disabled."
     fi
   else
-    echo "Script is up to date."
+    echo "Script is up to date. Current version: $SCRIPT_VERSION"
   fi
 }
 
 # Check for updates
 check_update
 echo "---------------------------------------------------------------"
+
 # Create an array of the last year (from today backward)
 dates=()
 for i in {0..365}; do
