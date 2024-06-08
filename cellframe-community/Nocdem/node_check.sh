@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.6"
+SCRIPT_VERSION="1.8"
 
 # Clear the terminal screen
 clear
@@ -10,23 +10,8 @@ echo "---------------------------------------------------------------"
 # Configuration file path
 CONFIG_FILE="node_check.cfg"
 
-# Check if configuration file exists, if not create it with default values
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Configuration file not found. Creating default configuration file."
-    cat > "$CONFIG_FILE" << EOF
-# Node Check Configuration
-CELL_MASTER_WALLET=""
-KEL_MASTER_WALLET=""
-CELL_THRESHOLD=100
-KEL_THRESHOLD=1000
-AUTO_TRANSFER=false
-AUTO_UPDATE=true
-CELL_NODES=("cell1")
-KEL_NODES=("kel1" "kel2")
-CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
-CONFIG_PATH="/opt/cellframe-node/etc/network"
-EOF
-fi
+# Check for configuration file and create if not exists
+check_config_file
 
 # Load configuration
 source "$CONFIG_FILE"
@@ -72,6 +57,26 @@ echo "  Total Today's Rewards (KEL): $total_today_rewards_kel"
 echo "  Total Yesterday's Rewards (KEL): $total_yesterday_rewards_kel"
 echo "  Total Wallet Balance (KEL): $total_wallet_balance_kel"
 echo "---------------------------------------------------------------"
+
+# Function to check and create the configuration file if it doesn't exist
+check_config_file() {
+  if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Configuration file not found. Creating default configuration file."
+    cat > "$CONFIG_FILE" << EOF
+# Node Check Configuration
+CELL_MASTER_WALLET=""
+KEL_MASTER_WALLET=""
+CELL_THRESHOLD=100
+KEL_THRESHOLD=1000
+AUTO_TRANSFER=false
+AUTO_UPDATE=true
+CELL_NODES=("cell1")
+KEL_NODES=("kel1" "kel2")
+CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
+CONFIG_PATH="/opt/cellframe-node/etc/network"
+EOF
+  fi
+}
 
 # Function to check and update the script if needed
 check_update() {
