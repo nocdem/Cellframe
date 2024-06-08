@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.2"
+SCRIPT_VERSION="1.3"
 
 # Clear the terminal screen
 clear
@@ -162,11 +162,15 @@ transfer_funds() {
     transfer_command="$CELLFRAME_PATH tx_create -net $net -chain main -value ${value}e+18 -token $token -to_addr $master_wallet -from_wallet $node -fee 0.05e+18"
     
     if [ "$AUTO_TRANSFER" = true ]; then
-      ssh_exec "$node" "$transfer_command"
-      if [[ $? -eq 0 ]]; then
-        echo "  Transfer of $value $token from $node to $master_wallet successful."
+      if [ -z "$master_wallet" ]; then
+        echo "  Threshold exceeded but master wallet address is empty. Skipping transfer."
       else
-        echo "  Transfer of $value $token from $node to $master_wallet failed."
+        ssh_exec "$node" "$transfer_command"
+        if [[ $? -eq 0 ]]; then
+          echo "  Transfer of $value $token from $node to $master_wallet successful."
+        else
+          echo "  Transfer of $value $token from $node to $master_wallet failed."
+        fi
       fi
     else
       echo "  Threshold exceeded. Auto transfer is disabled."
