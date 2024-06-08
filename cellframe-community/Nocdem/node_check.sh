@@ -10,54 +10,6 @@ echo "---------------------------------------------------------------"
 # Configuration file path
 CONFIG_FILE="node_check.cfg"
 
-# Check for configuration file and create if not exists
-check_config_file
-
-# Load configuration
-source "$CONFIG_FILE"
-
-# URL to check for script updates
-SCRIPT_URL="https://raw.githubusercontent.com/nocdem/Cellframe/main/cellframe-community/Nocdem/node_check.sh"
-
-# Check for updates
-check_update
-echo "---------------------------------------------------------------"
-
-# Create an array of the last year (from today backward)
-dates=()
-for i in {0..365}; do
-  dates+=("$(date --date="$i days ago" '+%a %b %_d')")
-done
-
-# Initialize totals
-total_today_rewards_cell=0
-total_yesterday_rewards_cell=0
-total_wallet_balance_cell=0
-total_today_rewards_kel=0
-total_yesterday_rewards_kel=0
-total_wallet_balance_kel=0
-
-# Loop through cell nodes and get their node information
-for node in "${CELL_NODES[@]}"; do
-  get_node_info "$node" "Backbone" "main" "CELL" "$CELL_MASTER_WALLET" "$CELL_THRESHOLD"
-done
-
-# Loop through kel nodes and get their node information
-for node in "${KEL_NODES[@]}"; do
-  get_node_info "$node" "KelVPN" "main" "KEL" "$KEL_MASTER_WALLET" "$KEL_THRESHOLD"
-done
-
-# Print summary report
-echo "Summary Report"
-echo "---------------------------------------------------------------"
-echo "  Total Today's Rewards (CELL): $total_today_rewards_cell"
-echo "  Total Yesterday's Rewards (CELL): $total_yesterday_rewards_cell"
-echo "  Total Wallet Balance (CELL): $total_wallet_balance_cell"
-echo "  Total Today's Rewards (KEL): $total_today_rewards_kel"
-echo "  Total Yesterday's Rewards (KEL): $total_yesterday_rewards_kel"
-echo "  Total Wallet Balance (KEL): $total_wallet_balance_kel"
-echo "---------------------------------------------------------------"
-
 # Function to check and create the configuration file if it doesn't exist
 check_config_file() {
   if [ ! -f "$CONFIG_FILE" ]; then
@@ -292,3 +244,51 @@ get_node_info() {
   
   echo "---------------------------------------------------------------"
 }
+
+# Check if configuration file exists, if not create it with default values
+check_config_file
+
+# Load configuration
+source "$CONFIG_FILE"
+
+# URL to check for script updates
+SCRIPT_URL="https://raw.githubusercontent.com/nocdem/Cellframe/main/cellframe-community/Nocdem/node_check.sh"
+
+# Check for updates
+check_update
+echo "---------------------------------------------------------------"
+
+# Create an array of the last year (from today backward)
+dates=()
+for i in {0..365}; do
+  dates+=("$(date --date="$i days ago" '+%a %b %_d')")
+done
+
+# Initialize totals
+total_today_rewards_cell=0
+total_yesterday_rewards_cell=0
+total_wallet_balance_cell=0
+total_today_rewards_kel=0
+total_yesterday_rewards_kel=0
+total_wallet_balance_kel=0
+
+# Loop through cell nodes and get their node information
+for node in "${CELL_NODES[@]}"; do
+  get_node_info "$node" "Backbone" "main" "CELL" "$CELL_MASTER_WALLET" "$CELL_THRESHOLD"
+done
+
+# Loop through kel nodes and get their node information
+for node in "${KEL_NODES[@]}"; do
+  get_node_info "$node" "KelVPN" "main" "KEL" "$KEL_MASTER_WALLET" "$KEL_THRESHOLD"
+done
+
+# Print summary report
+echo "Summary Report"
+echo "---------------------------------------------------------------"
+echo "  Total Today's Rewards (CELL): $total_today_rewards_cell"
+echo "  Total Yesterday's Rewards (CELL): $total_yesterday_rewards_cell"
+echo "  Total Wallet Balance (CELL): $total_wallet_balance_cell"
+echo "  Total Today's Rewards (KEL): $total_today_rewards_kel"
+echo "  Total Yesterday's Rewards (KEL): $total_yesterday_rewards_kel"
+echo "  Total Wallet Balance (KEL): $total_wallet_balance_kel"
+echo "---------------------------------------------------------------"
