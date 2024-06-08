@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.9"
+SCRIPT_VERSION="2.0"
 
 # Clear the terminal screen
 clear
@@ -193,6 +193,11 @@ get_node_info() {
   current=$(echo "$net_status" | grep "current:" | awk '{print $2}')
   percent=$(echo "$net_status" | grep "percent" | awk '{print $2}')
 
+  # Get number of blocks
+  block_info=$(ssh_exec "$node" "$CELLFRAME_PATH block list -net $net -chain $chain | tail -2")
+  if [[ $? -ne 0 ]]; then return; fi
+  num_blocks=$(echo "$block_info" | grep -oP '\d+ blocks' | awk '{print $1}')
+
   # Check systemctl status
   systemctl_status=$(ssh_exec "$node" "systemctl status cellframe-node")
   if [[ $? -ne 0 ]]; then return; fi
@@ -208,7 +213,7 @@ get_node_info() {
   echo "  Autocollect status for Fees in network $net is active"
   echo "  Autocollect status for Rewards in network $net is active"
 
-  echo "  Status: $current (% $percent)"
+  echo "  Status: $current (% $percent) - $num_blocks blocks"
 
   # Get memory status
   mem_stats=$(ssh_exec "$node" "cat /proc/meminfo")
