@@ -12,16 +12,16 @@ AUTO_TRANSFER=true # set to true to enable auto transfer
 clear
 
 # Define arrays for node names
-cell_nodes=("cell1" "briancell")
-kel_nodes=("kel1" "kel2" "kel3" "kel4" "gurkankel" "briankel")
+cell_nodes=("cell1")
+kel_nodes=("kel1" "kel2")
 
 # Paths
 CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
 CONFIG_PATH="/opt/cellframe-node/etc/network"
 
 # Master WAllets
-CELL_MASTER_WALLET="Rj7J7MiX2bWy8sNyWhXjfahLCfe4B5AgDU9JcMCJtJa8m2P2HewH3kzik2mjDYKuLD5Jj4ioVQLxAkocDhFJiD4isBNkD5jjorokvTEy"
-KEL_MASTER_WALLET="Rj7J7MjNgdr8DX5E9h4MJj2ZkFfpJ4bpKj4UQjAvftNyGPjq92PKppkewuXZfTLwi3JFtrnoQm8tYDLLBJNqBEAXAkoYX4tQHNWeLpsV"
+CELL_MASTER_WALLET=""
+KEL_MASTER_WALLET=""
 
 # Threshold values for transferring funds
 CELL_THRESHOLD=100 # adjust as needed
