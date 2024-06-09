@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.41"
+SCRIPT_VERSION="1.42"
 
 # Clear the terminal screen
 clear
@@ -75,6 +75,10 @@ ssh_exec() {
 is_node_online() {
     local node=$1
     output=$(ssh_exec "$node" "$CELLFRAME_PATH version")
+    if [[ $? -ne 0 ]]; then
+        echo "Node $node is not online. SSH command failed."
+        return 1
+    fi
     if [[ $output == *"Error 111: Failed socket connection"* ]]; then
         echo "Node $node is rebooting. Skipping..."
         return 1
@@ -196,6 +200,7 @@ get_and_transfer() {
 while true; do
   # Loop through nodes and get their wallet information and transfer funds if needed
   for node in "${NODES[@]}"; do
+    echo "Checking if node $node is online..."
     if is_node_online "$node"; then
       get_and_transfer "$node"
     fi
