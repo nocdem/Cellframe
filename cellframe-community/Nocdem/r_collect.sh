@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.2"
+SCRIPT_VERSION="1.3"
 
 # Clear the terminal screen
 clear
@@ -24,6 +24,7 @@ AUTO_UPDATE=true
 NODES=("cell1" "kel1" "kel2")
 CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
 CONFIG_PATH="/opt/cellframe-node/etc/network"
+SLEEPTIME=3600
 EOF
 fi
 
@@ -196,7 +197,13 @@ get_and_transfer() {
   done
 }
 
-# Loop through nodes and get their wallet information and transfer funds if needed
-for node in "${NODES[@]}"; do
-  get_and_transfer "$node"
+# Loop to run the script repeatedly with a sleep interval
+while true; do
+  # Loop through nodes and get their wallet information and transfer funds if needed
+  for node in "${NODES[@]}"; do
+    get_and_transfer "$node"
+  done
+
+  echo "Sleeping for $SLEEPTIME seconds..."
+  sleep "$SLEEPTIME"
 done
