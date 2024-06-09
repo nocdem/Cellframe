@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.52"
+SCRIPT_VERSION="1.53"
 
 # Clear the terminal screen
 clear
@@ -58,7 +58,7 @@ check_update() {
       echo "New version $latest_version available. Auto update is disabled."
     fi
   else
-    echo "Script is up to date. Current version: $SCRIPT_VERSION"
+    print_message "Script is up to date. Current version: $SCRIPT_VERSION"
   fi
 }
 
