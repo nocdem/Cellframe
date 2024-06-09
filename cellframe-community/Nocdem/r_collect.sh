@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.4"
+SCRIPT_VERSION="1.41"
 
 # Clear the terminal screen
 clear
@@ -147,11 +147,6 @@ transfer_funds() {
 get_and_transfer() {
   local node="$1"
 
-  # Check if node is online
-  if ! is_node_online "$node"; then
-    return
-  fi
-
   # Get the network list
   networks=$(ssh_exec "$node" "$CELLFRAME_PATH net list 2>/dev/null | grep -v 'networks:' | tr ',' '\n'")
 
@@ -201,11 +196,12 @@ get_and_transfer() {
 while true; do
   # Loop through nodes and get their wallet information and transfer funds if needed
   for node in "${NODES[@]}"; do
-    get_and_transfer "$node"
+    if is_node_online "$node"; then
+      get_and_transfer "$node"
+    fi
   done
 
   echo "Sleeping for $SLEEPTIME seconds..."
   echo "---------------------------------------------------------------"
   sleep "$SLEEPTIME"
-
 done
