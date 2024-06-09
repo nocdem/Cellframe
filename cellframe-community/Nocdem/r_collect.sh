@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.43"
+SCRIPT_VERSION="1.44"
 
 # Clear the terminal screen
 clear
@@ -21,7 +21,7 @@ CELL_THRESHOLD=100
 KEL_THRESHOLD=1000
 AUTO_TRANSFER=false
 AUTO_UPDATE=true
-NODES=("cell1" "briancell" "kel1" "kel2" "kel3")
+NODES=("cell1" "kel1" "kel2" "kel3")
 CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
 CONFIG_PATH="/opt/cellframe-node/etc/network"
 SLEEPTIME=3600
@@ -77,10 +77,12 @@ is_node_online() {
     output=$(ssh_exec "$node" "$CELLFRAME_PATH version")
     if [[ $? -ne 0 ]]; then
         echo "Node $node is not online. SSH command failed."
+        echo "---------------------------------------------------------------"
         return 1
     fi
     if [[ $output == *"Error 111: Failed socket connection"* ]]; then
         echo "Node $node is rebooting. Skipping..."
+        echo "---------------------------------------------------------------"
         return 1
     fi
     return 0
@@ -157,6 +159,7 @@ get_and_transfer() {
   # Check if the network list retrieval was successful
   if [[ $? -ne 0 ]] || [[ -z "$networks" ]]; then
       echo "Failed to retrieve network list for node $node. Skipping..."
+      echo "---------------------------------------------------------------"
       return
   fi
 
@@ -200,7 +203,6 @@ get_and_transfer() {
 while true; do
   # Loop through nodes and get their wallet information and transfer funds if needed
   for node in "${NODES[@]}"; do
-    echo "Checking if node $node is online..."
     if is_node_online "$node"; then
       get_and_transfer "$node"
     fi
