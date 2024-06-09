@@ -205,5 +205,7 @@ while true; do
   done
 
   echo "Sleeping for $SLEEPTIME seconds..."
+  echo "---------------------------------------------------------------"
   sleep "$SLEEPTIME"
+
 done
