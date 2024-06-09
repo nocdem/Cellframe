@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.3"
+SCRIPT_VERSION="1.4"
 
 # Clear the terminal screen
 clear
@@ -21,7 +21,7 @@ CELL_THRESHOLD=100
 KEL_THRESHOLD=1000
 AUTO_TRANSFER=false
 AUTO_UPDATE=true
-NODES=("cell1" "kel1" "kel2")
+NODES=("cell1" "kel1" "kel2" "kel3")
 CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
 CONFIG_PATH="/opt/cellframe-node/etc/network"
 SLEEPTIME=3600
@@ -156,7 +156,7 @@ get_and_transfer() {
   networks=$(ssh_exec "$node" "$CELLFRAME_PATH net list 2>/dev/null | grep -v 'networks:' | tr ',' '\n'")
 
   # Check if the network list retrieval was successful
-  if [ -z "$networks" ]; then
+  if [[ $? -ne 0 ]] || [[ -z "$networks" ]]; then
       echo "Failed to retrieve network list for node $node. Skipping..."
       return
   fi
