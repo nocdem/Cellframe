@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.42"
+SCRIPT_VERSION="1.43"
 
 # Clear the terminal screen
 clear
@@ -21,7 +21,7 @@ CELL_THRESHOLD=100
 KEL_THRESHOLD=1000
 AUTO_TRANSFER=false
 AUTO_UPDATE=true
-NODES=("cell1" "kel1" "kel2" "kel3")
+NODES=("cell1" "briancell" "kel1" "kel2" "kel3")
 CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
 CONFIG_PATH="/opt/cellframe-node/etc/network"
 SLEEPTIME=3600
