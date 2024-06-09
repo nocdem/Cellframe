@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.51"
+SCRIPT_VERSION="1.52"
 
 # Clear the terminal screen
 clear
@@ -62,8 +62,6 @@ check_update() {
   fi
 }
 
-# Check for updates
-check_update
 echo "---------------------------------------------------------------"
 
 # Function to execute SSH commands with error handling
@@ -209,6 +207,9 @@ get_and_transfer() {
 
 # Loop to run the script repeatedly with a sleep interval
 while true; do
+  # Check for updates
+  check_update
+
   # Loop through nodes and get their wallet information and transfer funds if needed
   for node in "${NODES[@]}"; do
     if is_node_online "$node"; then
