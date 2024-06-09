@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.1"
+SCRIPT_VERSION="1.2"
 
 # Clear the terminal screen
 clear
@@ -39,9 +39,12 @@ check_update() {
   if [[ "$latest_version" > "$SCRIPT_VERSION" ]]; then
     if [ "$AUTO_UPDATE" = true ]; then
       echo "New version $latest_version found. Updating the script."
-      curl -s "$SCRIPT_URL" -o "$0"
-      echo "Update completed. Restarting the script."
-      exec "$0"
+      if curl -s "$SCRIPT_URL" -o "$0"; then
+        echo "Update completed. Restarting the script."
+        exec "$0"
+      else
+        echo "Failed to download the update. Please check your network connection."
+      fi
     else
       echo "New version $latest_version available. Auto update is disabled."
     fi
@@ -106,7 +109,7 @@ transfer_funds() {
   local threshold="$4"
   local master_wallet="$5"
   local token="$6"
-
+  
   # Format wallet_balance and threshold
   wallet_balance=$(format_number "$wallet_balance")
   threshold=$(format_number "$threshold")
@@ -120,7 +123,7 @@ transfer_funds() {
   if (( $(echo "$wallet_balance > $threshold" | bc -l) )); then
     value=$(echo "$wallet_balance - 0.05" | bc -l)
     transfer_command="$CELLFRAME_PATH tx_create -net $net -chain main -value ${value}e+18 -token $token -to_addr $master_wallet -from_wallet $node -fee 0.05e+18"
-
+    
     if [ "$AUTO_TRANSFER" = true ]; then
       if [ -z "$master_wallet" ]; then
         echo "  Threshold exceeded but master wallet address is empty. Skipping transfer."
@@ -185,10 +188,10 @@ get_and_transfer() {
     echo "Node: $node"
     echo "  Network: $net"
     echo "  Wallet Balance: $wallet_balance $token"
-
+    
     # Transfer funds if threshold is exceeded
     transfer_funds "$node" "$net" "$wallet_balance" "$threshold" "$master_wallet" "$token"
-
+    
     echo "---------------------------------------------------------------"
   done
 }
