@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.5"
+SCRIPT_VERSION="1.51"
 
 # Clear the terminal screen
 clear
@@ -216,7 +216,9 @@ while true; do
     fi
   done
 
-  echo "Sleeping for $SLEEPTIME seconds..."
-  echo "---------------------------------------------------------------"
+  if [ "$VERBOSE" = true ]; then
+    echo "Sleeping for $SLEEPTIME seconds..."
+    echo "---------------------------------------------------------------"
+  fi
   sleep "$SLEEPTIME"
 done
