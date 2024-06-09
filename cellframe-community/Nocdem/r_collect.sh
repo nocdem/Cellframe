@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.45"
+SCRIPT_VERSION="1.5"
 
 # Clear the terminal screen
 clear
@@ -25,11 +25,19 @@ NODES=("cell1" "kel1" "kel2" "kel3")
 CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
 CONFIG_PATH="/opt/cellframe-node/etc/network"
 SLEEPTIME=3600
+VERBOSE=false
 EOF
 fi
 
 # Load configuration
 source "$CONFIG_FILE"
+
+# Function to print messages based on verbosity
+print_message() {
+  if [ "$VERBOSE" = true ]; then
+    echo "$1"
+  fi
+}
 
 # URL to check for script updates
 SCRIPT_URL="https://raw.githubusercontent.com/nocdem/Cellframe/main/cellframe-community/Nocdem/r_collect.sh"
@@ -188,14 +196,14 @@ get_and_transfer() {
     wallet_info=$(ssh_exec "$node" "$CELLFRAME_PATH wallet info -addr $fee_addr")
     if [[ $? -ne 0 ]]; then continue; fi
     wallet_balance=$(echo "$wallet_info" | grep -A 3 'tokens:' | grep 'coins:' | awk '{print $2}')
-    echo "Node: $node"
-    echo "  Network: $net"
-    echo "  Wallet Balance: $wallet_balance $token"
+    print_message "Node: $node"
+    print_message "  Network: $net"
+    print_message "  Wallet Balance: $wallet_balance $token"
     
     # Transfer funds if threshold is exceeded
     transfer_funds "$node" "$net" "$wallet_balance" "$threshold" "$master_wallet" "$token"
     
-    echo "---------------------------------------------------------------"
+    print_message "---------------------------------------------------------------"
   done
 }
 
