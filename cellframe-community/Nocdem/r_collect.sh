@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.44"
+SCRIPT_VERSION="1.45"
 
 # Clear the terminal screen
 clear
@@ -138,9 +138,9 @@ transfer_funds() {
         transfer_output=$(ssh_exec "$node" "$transfer_command")
         if [[ $transfer_output == *"transfer=Ok"* ]]; then
           tx_hash=$(echo "$transfer_output" | grep -oP '(?<=tx_hash = ).*')
-          echo "  Transfer of $value $token from $node to $master_wallet successful. (Hash: $tx_hash)"
+          echo "  Transfer of $value $token from $node is successful. (Hash: $tx_hash)"
         else
-          echo "  Transfer of $value $token from $node to $master_wallet failed."
+          echo "  Transfer of $value $token from $node has failed."
         fi
       fi
     else
