@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.53"
+SCRIPT_VERSION="1.54"
 
 # Clear the terminal screen
 clear
@@ -129,7 +129,7 @@ transfer_funds() {
 
   # Ensure wallet_balance and threshold are numeric values
   if [[ ! "$wallet_balance" =~ ^[0-9]+(\.[0-9]+)?$ ]] || [[ ! "$threshold" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-    echo "  Invalid wallet balance or threshold value. Skipping transfer."
+    echo "  Invalid wallet balance or threshold value. Skipping transfer. (Node: $node)"
     return
   fi
 
