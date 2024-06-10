@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version information
-SCRIPT_VERSION="1.54"
+SCRIPT_VERSION="1.55"
 
 # Clear the terminal screen
 clear
@@ -24,7 +24,7 @@ AUTO_UPDATE=true
 NODES=("cell1" "kel1" "kel2" "kel3")
 CELLFRAME_PATH="/opt/cellframe-node/bin/cellframe-node-cli"
 CONFIG_PATH="/opt/cellframe-node/etc/network"
-SLEEPTIME=3600
+SLEEPTIME=300
 VERBOSE=false
 EOF
 fi
@@ -150,7 +150,7 @@ transfer_funds() {
         fi
       fi
     else
-      echo "  Threshold exceeded. Auto transfer is disabled."
+      echo "  Threshold exceeded (Node: $node). Auto transfer is disabled."
     fi
   fi
 }
