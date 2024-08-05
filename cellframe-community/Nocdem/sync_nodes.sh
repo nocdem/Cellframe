@@ -1,6 +1,8 @@
 #!/bin/bash
+
 # Prerequisites: All nodes must have their root SSH keys installed in each of the nodes
 # Add your node IPs into the nodes.cfg file
+
 # Path to the Cellframe binary
 CELLFRAME_PATH="/opt/cellframe-node/"
 
