@@ -82,14 +82,14 @@ get_block_heights() {
 
         # Fetch all networks
         NETWORKS=$(ssh_exec "$IP" "$CELLFRAME_PATH/bin/cellframe-node-cli net list | grep -v 'networks:' | tr ',' '\n' | grep -v '^$'")
-        
+
         # If NETWORKS is empty or contains errors, try to get the hostname and skip to the next node
         if [[ -z "$NETWORKS" || "$NETWORKS" =~ ^Error ]]; then
             NODE_NAMES["$IP"]="$hostname"
             ERRORS["$IP"]="Error fetching network list. Skipping node ($IP)."
             continue
         fi
-        
+
         for NET in $NETWORKS; do
             block_info=$(ssh_exec "$IP" "$CELLFRAME_PATH/bin/cellframe-node-cli block list -net $NET -chain $CHAIN | tail -2")
             if [[ -z "$block_info" || "$block_info" =~ ^Error ]]; then
@@ -124,9 +124,12 @@ get_block_heights() {
                 node_block_height=${NODE_HEIGHTS[$node]}
                 node_name=${NODE_NAMES[$node_ip]}
                 echo "    $node_ip ($node_name): Block height: $node_block_height"
+                if [[ $FORCE_SYNC_NODE == "$node_ip" ]]; then
+                    sync_nodes "$node_ip" "$node_name" "$NET" "$highest_block"
+                fi
                 if (( highest_block - node_block_height > BLOCK_HEIGHT_THRESHOLD )); then
                     echo "    Warning: $node_ip ($node_name) is $((highest_block - node_block_height)) blocks behind."
-                    if [[ $AUTO_SYNC == true || $FORCE_SYNC_NODE == "$node_ip" ]]; then
+                    if [[ $AUTO_SYNC == true ]]; then
                         sync_nodes "$node_ip" "$node_name" "$NET" "$highest_block"
                     else
                         read -p "    Do you want to sync $node_ip ($node_name) from a higher node? (y/n): " answer
