@@ -18,6 +18,12 @@ CONFIG_FILE="nodes.cfg"
 # Auto-sync configuration
 AUTO_SYNC=false
 
+# Force sync target node
+FORCE_SYNC_NODE=""
+
+# Run interval in minutes (default is 0, meaning no continuous running)
+RUN_INTERVAL=0
+
 # Function to read the configuration file and return the IP addresses
 read_config() {
     local ips=()
@@ -120,7 +126,7 @@ get_block_heights() {
                 echo "    $node_ip ($node_name): Block height: $node_block_height"
                 if (( highest_block - node_block_height > BLOCK_HEIGHT_THRESHOLD )); then
                     echo "    Warning: $node_ip ($node_name) is $((highest_block - node_block_height)) blocks behind."
-                    if [[ $AUTO_SYNC == true ]]; then
+                    if [[ $AUTO_SYNC == true || $FORCE_SYNC_NODE == "$node_ip" ]]; then
                         sync_nodes "$node_ip" "$node_name" "$NET" "$highest_block"
                     else
                         read -p "    Do you want to sync $node_ip ($node_name) from a higher node? (y/n): " answer
@@ -187,5 +193,33 @@ sync_nodes() {
     echo "Sync complete from $SOURCE_IP ($SOURCE_NAME) to $TARGET_IP ($TARGET_NAME)."
 }
 
-# Execute the default action: gather block heights and handle synchronization
-get_block_heights
+# Parse arguments
+while getopts "f:r:" opt; do
+  case ${opt} in
+    f )
+      FORCE_SYNC_NODE=$OPTARG
+      ;;
+    r )
+      RUN_INTERVAL=$OPTARG
+      ;;
+    \? )
+      echo "Usage: cmd [-f target_node_ip] [-r run_interval_minutes]"
+      exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND -1))
+
+run_script() {
+    get_block_heights
+}
+
+if [[ $RUN_INTERVAL -gt 0 ]]; then
+    while true; do
+        run_script
+        sleep ${RUN_INTERVAL}m
+    done
+else
+    run_script
+fi
