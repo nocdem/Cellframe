@@ -1,5 +1,5 @@
 #!/bin/bash
-# Nodestats 1.243
+# Nodestats 1.301
 # Telegram   : @Nocdem
 # Description: This script generates an HTML page displaying various information about the status of a Cellframe node.
 #              It includes details about version, CPU and memory utilization, network, certificates, and wallet information.
