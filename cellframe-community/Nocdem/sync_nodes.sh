@@ -97,7 +97,7 @@ get_block_heights() {
                 continue
             fi
 
-            num_blocks=$(echo "$block_info" | grep -oP '\d+ blocks' | awk '{print $1}')
+            num_blocks=$(echo "$block_info" | cut -d ":" -f2)
             if [[ -z "$num_blocks" ]]; then
                 ERRORS["$IP"]="Error parsing number of blocks for network $NET."
                 continue
